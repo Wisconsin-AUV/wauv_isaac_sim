@@ -2,7 +2,7 @@ a 3rd sim...?
 
 
 # TODOs:
-- [ ] workspace and dockerfile setup ( for using zed extension + webrtc + isaac sim + ocean sim + any custom physics we write)
+- [x] workspace and dockerfile setup ( for using zed extension + webrtc + isaac sim + ocean sim + any custom physics we write)
 - [ ] getting ocean sim to run on top of zed-isaac-sim
 - [ ] physics in isaac sim
 - [ ] ardusub SITL to communicate with isaac sim script(should be 90% done from stonefish)
