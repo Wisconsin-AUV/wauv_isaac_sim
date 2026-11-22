@@ -1,0 +1,41 @@
+# docker compose up --build   |   docker compose exec ros bash
+x-common: &common
+  network_mode: host      # DDS, ZED RTP stream, WebRTC: no NAT
+  ipc: host               # Fast DDS shared memory + ZED IPC stream across containers
+  deploy:
+    resources:
+      reservations:
+        devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+
+services:
+  sim:
+    <<: *common
+    build: { context: ., dockerfile: sim.dockerfile }
+    image: wauv-isaac-sim
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - OMNI_KIT_ALLOW_ROOT=1
+      - ACCEPT_EULA=Y
+      - PRIVACY_CONSENT=Y
+    volumes:
+      - ./assets:/assets
+      - ./zed-isaac-sim:/isaac-sim/extsUser/zed-isaac-sim
+      - isaac-cache:/isaac-sim/kit/cache        # keep compiled shaders between runs
+      - isaac-ov-cache:/root/.cache/ov
+
+  ros:
+    <<: *common
+    build: { context: ., dockerfile: ros.dockerfile }
+    image: wauv-ros-humble
+    stdin_open: true
+    tty: true
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    volumes:
+      - ./ws:/workspace                         # your Humble workspace (src/ inside)
+
+volumes:
+  isaac-cache:
+  isaac-ov-cache:
