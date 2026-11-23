@@ -1,31 +1,49 @@
-# docker compose up --build   |   docker compose exec ros bash
+# Editor (GUI over WebRTC):   docker compose up -d sim ros
+# Run the sim script:         docker compose --profile run up sim-run
+# Shell in ROS:               docker compose exec ros bash
+
 x-common: &common
-  network_mode: host      # DDS, ZED RTP stream, WebRTC: no NAT
+  network_mode: host      # DDS, ZED stream, WebRTC, SITL UDP: no NAT
   ipc: host               # Fast DDS shared memory + ZED IPC stream across containers
   deploy:
     resources:
       reservations:
         devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
 
+x-sim: &sim
+  <<: *common
+  build: { context: ., dockerfile: docker/sim.dockerfile }
+  image: wauv-isaac-sim
+  environment:
+    - NVIDIA_DRIVER_CAPABILITIES=all
+    - OMNI_KIT_ALLOW_ROOT=1
+    - ACCEPT_EULA=Y
+    - PRIVACY_CONSENT=Y
+    - PYTHONPATH=/wauv                       # `import wauv_sim` works
+    - ROS_DISTRO=jazzy                       # Isaac's internal ROS 2 bridge
+    - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    - ROS_DOMAIN_ID=0
+  volumes:
+    - ./extern/zed-isaac-sim:/isaac-sim/extsUser/zed-isaac-sim   # your fork (submodule)
+    - ./wauv_sim:/wauv/wauv_sim                                  # sim code
+    - ./run_sub.py:/wauv/run_sub.py
+    - ./config:/wauv/config
+    - ./assets:/assets                                           # USDs
+    - isaac-cache:/isaac-sim/kit/cache                           # shader cache
+    - isaac-ov-cache:/root/.cache/ov
+
 services:
-  sim:
-    <<: *common
-    build: { context: ., dockerfile: sim.dockerfile }
-    image: wauv-isaac-sim
-    environment:
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - OMNI_KIT_ALLOW_ROOT=1
-      - ACCEPT_EULA=Y
-      - PRIVACY_CONSENT=Y
-    volumes:
-      - ./assets:/assets
-      - ./zed-isaac-sim:/isaac-sim/extsUser/zed-isaac-sim
-      - isaac-cache:/isaac-sim/kit/cache        # keep compiled shaders between runs
-      - isaac-ov-cache:/root/.cache/ov
+  sim:                       # EDITOR: Isaac GUI over WebRTC, for building scenes
+    <<: *sim
+
+  sim-run:                   # RUNTIME: your script owns the loop (lock-step with SITL)
+    <<: *sim
+    profiles: ["run"]        # only starts when you ask for it
+    entrypoint: ["./python.sh", "/wauv/run_sub.py"]
 
   ros:
     <<: *common
-    build: { context: ., dockerfile: ros.dockerfile }
+    build: { context: ., dockerfile: docker/ros.dockerfile }
     image: wauv-ros-humble
     stdin_open: true
     tty: true
@@ -34,7 +52,7 @@ services:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
     volumes:
-      - ./ws:/workspace                         # your Humble workspace (src/ inside)
+      - ../WAUV_autonomous_deployment:/workspace   # your sub code, as a sibling repo
 
 volumes:
   isaac-cache:

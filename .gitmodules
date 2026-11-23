@@ -1,0 +1,4 @@
+[submodule "extern/zed-isaac-sim"]
+	path = extern/zed-isaac-sim
+	url = https://github.com/ababhhaa/zed-isaac-sim-underwater.git
+	branch = underwater
