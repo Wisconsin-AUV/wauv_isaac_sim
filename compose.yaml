@@ -23,6 +23,7 @@ x-sim: &sim
     - ROS_DISTRO=jazzy                       # Isaac's internal ROS 2 bridge
     - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
     - ROS_DOMAIN_ID=0
+    - PYTHONUNBUFFERED=1
   volumes:
     - ./extern/zed-isaac-sim:/isaac-sim/extsUser/zed-isaac-sim   # your fork (submodule)
     - ./wauv_sim:/wauv/wauv_sim                                  # sim code
@@ -39,7 +40,12 @@ services:
   sim-run:                   # RUNTIME: your script owns the loop (lock-step with SITL)
     <<: *sim
     profiles: ["run"]        # only starts when you ask for it
-    entrypoint: ["./python.sh", "/wauv/run_sub.py"]
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        export LD_LIBRARY_PATH="$${LD_LIBRARY_PATH}:/isaac-sim/exts/isaacsim.ros2.core/jazzy/lib"
+        exec ./python.sh /wauv/run_sub.py
 
   ros:
     <<: *common

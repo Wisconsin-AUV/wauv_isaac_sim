@@ -19,14 +19,21 @@ args, _ = parser.parse_known_args()
 import numpy as np
 from isaacsim import SimulationApp
 
-app = SimulationApp({"headless": True})
+app = SimulationApp(launch_config={
+    "width": 1280, "height": 720,
+    "window_width": 1920, "window_height": 1080,
+    "headless": True,
+    "hide_ui": False,
+    },
+    experience="/isaac-sim/apps/isaacsim.exp.full.streaming.kit",
+)
 
 import carb 
 import omni.graph.core as og
 import omni.kit.app
 import omni.usd
 import usdrt
-from isaacsim.core.utils.extensions import enable_extension
+from isaacsim.core.experimental.utils.app import enable_extension
 
 ext_mgr = omni.kit.app.get_app().get_extension_manager()
 ext_mgr.add_path("/isaac-sim/extsUser/zed-isaac-sim/exts")
